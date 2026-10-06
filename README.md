@@ -1,5 +1,3 @@
-# research-gap-finder
-
 # Research Gap Finder
 
 A tool-calling agent that helps users identify potantial research gaps from recent academic literature.
