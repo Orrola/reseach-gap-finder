@@ -30,7 +30,9 @@ SYSTEM_PROMPT = (
 
     "Never invent papers, methods, findings, limitations, or research gaps. "
     "Treat all gaps as candidate gaps inferred from the retrieved sample, "
-    "not as confirmed absence of prior research."
+    "not as confirmed absence of prior research. "
+    "Candidate gaps may be classified as method coverage gaps, recurring limitations, "
+    "or conflicting findings."
 )
 
 MAX_TOOL_ROUNDS = 6
@@ -43,11 +45,14 @@ def format_gap_result(result: dict) -> str:
     gaps = result.get("gaps", [])
 
     if not gaps:
-        return "No candidate research gaps were identified from the retrieved sample."
+        return (
+            "No clear candidate gaps were identified "
+            "from the retrieved sample."
+        )
 
-    lines = []
+    sections = []
 
-    for i, gap in enumerate(gaps, start=1):
+    for gap in gaps:
         gap_type = (
             gap.get("gap_type", "candidate_gap")
             .replace("_", " ")
@@ -59,15 +64,16 @@ def format_gap_result(result: dict) -> str:
             "No description available."
         )
 
-        lines.append(
-            f"{i}. ({gap_type}) {description}"
+        sections.append(
+            f"{gap_type}\n{description}"
         )
 
-    lines.append(
-        "These are candidate gaps based on the retrieved sample."
+    sections.append(
+        "These candidate gaps are inferred from the retrieved sample "
+        "and should be validated against a broader literature review."
     )
 
-    return "\n\n".join(lines)
+    return "\n\n".join(sections)
 
 # ---------------------------------------------------------
 # Harness

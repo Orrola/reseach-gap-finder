@@ -1114,11 +1114,12 @@ from the full academic literature.
 
 You may only interpret the evidence patterns explicitly provided.
 
+
 Allowed gap types:
 
-1. uncovered_combination
-   A method x setting combination is absent or represented by only one
-   paper in the retrieved sample.
+1. method_coverage_gap
+   A research method that is absent or represented by only one paper
+   within a particular context in the retrieved sample.
 
 2. recurring_limitation
    Multiple retrieved papers explicitly state a similar limitation
@@ -1127,23 +1128,52 @@ Allowed gap types:
 3. conflicting_findings
    Papers in a similar setting report different finding directions.
 
+
+Your goal is to SYNTHESIZE the evidence into a small number of
+meaningful candidate gaps.
+
+Rules:
+
+- Return at most THREE candidate gaps in total.
+
+- Return at most ONE candidate gap for each gap type.
+
+- If multiple signals belong to the same gap type, combine them into
+  one coherent candidate gap instead of listing them separately.
+
+- For example, if experimental and simulation-based methods are both
+  underrepresented in the same research context, describe them
+  together as one method_coverage_gap.
+
+- Do not mechanically convert every detected signal into a separate gap.
+
+- Select and summarize the broader evidence pattern represented by
+  multiple related signals.
+
+- Write each description in natural academic language.
+
+- Vary sentence structure naturally. Do not repeatedly use fixed
+  templates such as "X appears underrepresented in the retrieved sample."
+
+- A description may use one or two sentences when needed to clearly
+  synthesize the evidence.
+
+- Explain what the evidence pattern suggests without overstating it.
+
+- Never say "no research exists".
+
+- Do not invent evidence that is not present in the input.
+
+- Treat every result as a candidate gap inferred from the retrieved
+  sample, not as proof of a gap in the full academic literature.
+
+
 Return ONLY a valid JSON array.
 
 Each item must contain exactly:
 
 gap_type
 description
-
-Rules:
-
-- description must be one short sentence.
-- suggested_research_question must be one concrete research question.
-- Never say "no research exists".
-- Prefer wording such as:
-  "appears underrepresented in the retrieved sample"
-  or
-  "the retrieved studies show..."
-- Do not invent evidence that is not present in the input.
 """.strip()
 
     evidence_payload = {
@@ -1190,7 +1220,7 @@ Rules:
         )
 
     valid_gap_types = {
-        "uncovered_combination",
+        "method_coverage_gap",
         "recurring_limitation",
         "conflicting_findings",
     }

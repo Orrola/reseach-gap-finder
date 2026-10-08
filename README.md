@@ -31,7 +31,7 @@ The agent follows a three-step workflow:
 3. **Find candidate research gaps**
    - Uses Python to analyze structured paper profiles.
    - Detects:
-     - **Uncovered combinations** — method × setting combinations that are absent or rare in the retrieved sample.
+     - **Method Coverage Gap** — method × setting combinations that are absent or rare in the retrieved sample.
      - **Recurring limitations** — limitations explicitly repeated across multiple papers.
      - **Conflicting findings** — papers in similar settings that report different finding directions.
    - Gemini is used only to interpret patterns already identified from the structured evidence.

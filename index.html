@@ -3,203 +3,1145 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Gemini Web Tool Calling</title>
+        <title>Research Gap Finder</title>
         <style>
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
-            body {
-                font-family: system-ui, sans-serif;
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 3rem 1rem;
+
+            html {
+                overflow-y: scroll;
+                scroll-behavior: smooth;
             }
+
+            ::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #f0f1ef;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #b9bfbc;
+                border-radius: 999px;
+                border: 2px solid #f0f1ef;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #858e89;
+            }       
+
+            body {
+                font-family:
+                    Inter,
+                    system-ui,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif;
+
+                background: #f6f7f5;
+                color: #20272b;
+
+                min-height: 100vh;
+
+                padding: 3rem 1.25rem 5rem;
+            }
+
+            #page {
+                width: 100%;
+                max-width: 1100px;
+
+                margin: 0 auto;
+            }
+
+            .hero {
+                margin-bottom: 3rem;
+            }
+
+            .eyebrow {
+                margin-bottom: 0.8rem;
+
+                font-size: 0.72rem;
+                font-weight: 600;
+
+                text-transform: uppercase;
+                letter-spacing: 0.14em;
+
+                color: #7b8488;
+            }
+
+            .hero h1 {
+                font-size: clamp(2.8rem, 6vw, 5rem);
+                line-height: 0.98;
+
+                letter-spacing: -0.05em;
+
+                font-weight: 600;
+            }
+
+            .subtitle {
+
+                margin-top: 1.25rem;
+
+                font-size: 1.15rem;
+                line-height: 1.6;
+
+                color: #626b70;
+            }
+
+            .scope-note {
+                margin-top: 1.8rem;
+
+                padding: 0.15rem 0 0.15rem 1rem;
+
+                 border-left: 3px solid #20272b;
+            }
+
+            .scope-note strong {
+                font-size: 0.95rem;
+            }
+
+            .scope-note p {
+                margin-top: 0.45rem;
+
+                font-size: 0.92rem;
+                line-height: 1.6;
+
+                color: #687176;
+            }
+
+            .gap-section,
+            .examples {
+                margin-bottom: 3rem;
+            }
+
+            .section-heading,
+            .examples h2 {
+                font-size: 1rem;
+                font-weight: 600;
+            }
+
+            .section-description,
+            .examples p {
+                margin-top: 0.4rem;
+
+                font-size: 0.9rem;
+                line-height: 1.55;
+
+                color: #737b7f;
+            }
+
+
+            .gap-grid {
+                display: grid;
+
+                grid-template-columns: repeat(3, 1fr);
+
+                gap: 1rem;
+
+                margin-top: 1rem;
+            }
+
+            .gap-card {
+                min-height: 215px;
+
+                padding: 1.4rem;
+
+                background: #ffffff;
+
+                border: 1px solid #deded9;
+
+                display: flex;
+                flex-direction: column;
+            }
+
+            .gap-number {
+                margin-bottom: 2.4rem;
+
+                font-size: 0.72rem;
+                letter-spacing: 0.08em;
+
+                color: #949a9d;
+            }
+
+            .gap-card h3 {
+                margin-bottom: 0.7rem;
+
+                font-size: 1rem;
+                font-weight: 600;
+            }
+
+            .gap-card p {
+                font-size: 0.88rem;
+                line-height: 1.6;
+
+                color: #687176;
+            }
+
+            .gap-evidence {
+                margin-top: auto;
+                padding-top: 1.25rem;
+
+                font-size: 0.72rem;
+                line-height: 1.4;
+
+                color: #8b9295;
+            }
+
+            .prompt-chips {
+                display: flex;
+                flex-wrap: wrap;
+
+                gap: 0.7rem;
+
+                margin-top: 1rem;
+            }
+
+            .prompt-chip {
+                padding: 0.7rem 1rem;
+
+                background: transparent;
+                color: #22292d;
+
+                border: 1px solid #ccd1ce;
+                border-radius: 999px;
+
+                font-size: 0.85rem;
+
+                text-transform: none;
+                letter-spacing: 0;
+
+                cursor: pointer;
+
+                transition:
+                    background 0.15s ease,
+                    color 0.15s ease,
+                    border-color 0.15s ease;
+            }
+
+            .prompt-chip:hover {
+                background: #22292d;
+                color: #ffffff;
+
+                border-color: #22292d;
+            }
+
             #container {
                 width: 100%;
-                max-width: 900px;
-                display: flex;
-                flex-direction: column;
-                border: 1px solid #e0e0e0;
+
+                background: #ffffff;
+
+                border: 1px solid #deded9;
             }
+
+            .chat-heading {
+                padding: 1.25rem 1.5rem;
+
+                border-bottom: 1px solid #deded9;
+            }
+
+            .chat-heading h2 {
+                font-size: 1rem;
+                font-weight: 600;
+            }
+
+            .chat-heading p {
+                margin-top: 0.3rem;
+
+                font-size: 0.82rem;
+
+                color: #7b8286;
+            }
+
             #messages {
                 overflow-y: auto;
-                padding: 2rem;
+
+                padding: 1.5rem;
+
                 display: flex;
                 flex-direction: column;
-                gap: 1.5rem;
-                min-height: 450px;
-                max-height: 70vh;
+
+                gap: 1rem;
+
+                min-height: 180px;
+                max-height: 65vh;
             }
             .msg {
-                line-height: 1.5;
-                max-width: 80%;
+                max-width: 82%;
+
+                line-height: 1.55;
             }
+
             .msg.assistant .content {
                 white-space: pre-wrap;
             }
+
             .msg.user {
                 align-self: flex-end;
+
                 text-align: right;
             }
+
             .msg .role {
-                font-size: 0.75rem;
+                margin-bottom: 0.3rem;
+
+                font-size: 0.68rem;
+
                 text-transform: uppercase;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.08em;
+
                 color: #999;
-                margin-bottom: 0.25rem;
             }
+
+            .msg .content {
+                font-size: 0.94rem;
+            }
+
             .msg.loading .content {
                 color: #999;
             }
+
             #input-area {
                 display: flex;
+
                 gap: 1rem;
-                padding: 1.5rem;
-                border-top: 1px solid #e0e0e0;
+
+                padding: 1.25rem 1.5rem;
+
+                border-top: 1px solid #deded9;
             }
+
             #user-input {
                 flex: 1;
+
                 padding: 0.75rem 0;
+
                 border: none;
-                border-bottom: 1px solid #e0e0e0;
+                border-bottom: 1px solid #cdd1cf;
+
+                background: transparent;
+
                 font-size: 1rem;
+
                 outline: none;
             }
+
             #user-input:focus {
-                border-bottom-color: #000;
+                border-bottom-color: #20272b;
             }
-            button {
+
+            #send-btn {
                 padding: 0.75rem 1.5rem;
-                background: #000;
-                color: #fff;
+
                 border: none;
+
+                background: #20272b;
+                color: #ffffff;
+
                 font-size: 0.75rem;
+
                 text-transform: uppercase;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.06em;
+
                 cursor: pointer;
             }
-            .tool {
-                font-family: ui-monospace, monospace;
-                font-size: 0.75rem;
-                color: #555;
-                background: #f5f5f5;
-                border-left: 3px solid #f59e0b;
-                padding: 0.5rem 0.75rem;
-                margin: 0.25rem 0 0.75rem;
+
+            #send-btn:disabled {
+                opacity: 0.35;
+            }
+
+            .tool-card {
+                padding: 1rem 1.1rem;
+
+                background: #fafaf8;
+
+                border: 1px solid #deded9;
+            }
+
+            .tool-header {
+                display: flex;
+
+                align-items: flex-start;
+                justify-content: space-between;
+
+                gap: 1rem;
+            }
+
+            .tool-step {
+                display: block;
+
+                margin-bottom: 0.2rem;
+
+                font-size: 0.67rem;
+
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+
+                color: #92999c;
+            }
+
+            .tool-header h3 {
+                font-size: 0.95rem;
+                font-weight: 600;
+            }
+
+            .tool-status {
+                font-size: 0.72rem;
+
+                color: #547060;
+            }
+
+            .tool-description {
+                margin-top: 0.55rem;
+
+                font-size: 0.83rem;
+                line-height: 1.5;
+
+                color: #6a7276;
+            }
+
+            .tool-details {
+                margin-top: 0.8rem;
+
+                font-size: 0.76rem;
+            }
+
+            .tool-details summary {
+                cursor: pointer;
+
+                color: #5e666a;
+            }
+
+            .tool-details pre {
+                margin-top: 0.75rem;
+
+                padding: 0.85rem;
+
+                overflow-x: auto;
+
+                background: #f0f0ed;
+
                 white-space: pre-wrap;
                 word-break: break-word;
+
+                font-family:
+                    ui-monospace,
+                    SFMono-Regular,
+                    Menlo,
+                    monospace;
+
+                font-size: 0.73rem;
+                line-height: 1.45;
             }
-            .tool .label {
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: #b45309;
-            }
-            button:disabled {
-                opacity: 0.3;
+
+
+            @media (max-width: 800px) {
+                body {
+                    padding: 2rem 1rem 4rem;
+                }
+
+                .gap-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .gap-card {
+                    min-height: auto;
+                }
+
+                .gap-number {
+                    margin-bottom: 1.25rem;
+                }
+
+                .msg {
+                    max-width: 95%;
+                }
+
+                #input-area {
+                    flex-direction: column;
+                }
+
+                #send-btn {
+                    align-self: flex-end;
+                }
             }
         </style>
     </head>
     <body>
-        <div id="container">
-            <div id="messages"></div>
-            <div id="input-area">
-                <input
-                    type="text"
-                    id="user-input"
-                    placeholder="Type a message..."
-                    autocomplete="off"
-                />
-                <button id="send-btn">Send</button>
-            </div>
+        <div id="page">
+
+            <header class="hero">
+
+                <div class="eyebrow">
+                    Agentic Literature Analysis
+                </div>
+
+                <h1>
+                    Research Gap Finder
+                </h1>
+
+                <p class="subtitle">
+                    Discover evidence-backed candidate research gaps from several recent journal literature.
+                </p>
+
+                <div class="scope-note">
+
+                    <strong>
+                        Definition of "candidate gap"
+                    </strong>
+
+                    <p>
+                        This agent does not determine whether a topic has
+                        never been studied. Instead, it identifies signals
+                        within the retrieved literature sample that may
+                        indicate areas worth further investigation.
+                    </p>
+
+                </div>
+
+            </header>
+
+            <section class="gap-section">
+
+                <div class="section-heading">
+                    Candidate Gap Signals
+                </div>
+
+                <p class="section-description">
+                    The agent currently looks for three types of evidence
+                    patterns in the retrieved literature sample.
+                </p>
+
+
+                <div class="gap-grid">
+
+                    <!-- Gap 1 -->
+
+                    <article class="gap-card">
+
+                        <div class="gap-number">
+                            01
+                        </div>
+
+                        <h3>
+                            Method Coverage Gap
+                        </h3>
+
+                        <p>
+                            A research method that is rarely represented
+                            within a particular context in the retrieved
+                            literature sample.
+                        </p>
+
+                        <div class="gap-evidence">
+                            Exploratory coverage signal based on
+                            method × context representation.
+                        </div>
+
+                    </article>
+
+
+                    <!-- Gap 2 -->
+
+                    <article class="gap-card">
+
+                        <div class="gap-number">
+                            02
+                        </div>
+
+                        <h3>
+                            Recurring Limitation
+                        </h3>
+
+                        <p>
+                            An explicitly stated limitation or future-work
+                            need that appears repeatedly across retrieved
+                            paper abstracts.
+                        </p>
+
+                        <div class="gap-evidence">
+                            Grounded in limitations explicitly stated
+                            by paper authors.
+                        </div>
+
+                    </article>
+
+
+                    <!-- Gap 3 -->
+
+                    <article class="gap-card">
+
+                        <div class="gap-number">
+                            03
+                        </div>
+
+                        <h3>
+                            Conflicting Findings
+                        </h3>
+
+                        <p>
+                            Studies within a similar research setting that
+                            report different directions of findings.
+                        </p>
+
+                        <div class="gap-evidence">
+                            May indicate an unresolved or
+                            context-dependent relationship.
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                Example prompts
+            =================================================== -->
+
+            <section class="examples">
+
+                <h2>
+                    Try an example
+                </h2>
+
+                <p>
+                    Select a prompt below or enter your own research topic.
+                </p>
+
+
+                <div class="prompt-chips">
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on generative AI and employee productivity."
+                    >
+                        Generative AI & employee productivity
+                    </button>
+
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on AI adoption in healthcare."
+                    >
+                        AI adoption in healthcare
+                    </button>
+
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on large language models in education."
+                    >
+                        LLMs in education
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                Chat interface
+            =================================================== -->
+
+            <main id="container">
+
+                <div class="chat-heading">
+
+                    <h2>
+                        Research Query
+                    </h2>
+
+                    <p>
+                        Ask about a research topic and the agent will
+                        automatically run the full literature-analysis workflow.
+                    </p>
+
+                </div>
+
+
+                <div id="messages"></div>
+
+
+                <div id="input-area">
+
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="Ask about a research topic..."
+                        autocomplete="off"
+                    />
+
+                    <button id="send-btn">
+                        Send
+                    </button>
+
+                </div>
+
+            </main>
+
         </div>
         <script>
-            const messages = document.getElementById("messages");
-            const userInput = document.getElementById("user-input");
-            const sendBtn = document.getElementById("send-btn");
+
+            const messages =
+                document.getElementById("messages");
+
+            const userInput =
+                document.getElementById("user-input");
+
+            const sendBtn =
+                document.getElementById("send-btn");
+
             let sessionId = null;
 
+
+            const toolInfo = {
+
+                search_papers: {
+                    step: "Step 1",
+                    title: "Search Papers",
+                    description:
+                        "Retrieve recent eligible journal articles from OpenAlex."
+                },
+
+                extract_paper_profiles: {
+                    step: "Step 2",
+                    title: "Extract Paper Profiles",
+                    description:
+                        "Structure research methods, settings, findings, and explicit limitations from paper abstracts."
+                },
+
+                find_research_gaps: {
+                    step: "Step 3",
+                    title: "Find Candidate Gaps",
+                    description:
+                        "Compare structured evidence to identify method coverage gaps, recurring limitations, and conflicting findings."
+                }
+
+            };
+
+
             function escapeHtml(text) {
-                const div = document.createElement("div");
-                div.textContent = text;
+
+                const div =
+                    document.createElement("div");
+
+                div.textContent =
+                    text;
+
                 return div.innerHTML;
+
             }
 
-            function addMessage(role, text, isLoading = false) {
-                const div = document.createElement("div");
+
+            function addMessage(
+                role,
+                text,
+                isLoading = false
+            ) {
+
+                const div =
+                    document.createElement("div");
+
                 div.className =
                     "msg " +
-                    (role === "you" ? "user" : "assistant") +
-                    (isLoading ? " loading" : "");
-                div.innerHTML =
-                    '<div class="role">' +
-                    role +
-                    '</div><div class="content">' +
-                    text +
-                    "</div>";
-                messages.appendChild(div);
-                messages.scrollTop = messages.scrollHeight;
+                    (role === "you"
+                        ? "user"
+                        : "assistant") +
+                    (isLoading
+                        ? " loading"
+                        : "");
+
+
+                const roleDiv =
+                    document.createElement("div");
+
+                roleDiv.className =
+                    "role";
+
+                roleDiv.textContent =
+                    role === "you"
+                        ? "You"
+                        : "Research Gap Finder";
+
+
+                const contentDiv =
+                    document.createElement("div");
+
+                contentDiv.className =
+                    "content";
+
+                contentDiv.textContent =
+                    text;
+
+
+                div.appendChild(
+                    roleDiv
+                );
+
+                div.appendChild(
+                    contentDiv
+                );
+
+
+                messages.appendChild(
+                    div
+                );
+
+                messages.scrollTop =
+                    messages.scrollHeight;
+
+
                 return div;
+
             }
+
 
             async function send() {
-                const text = userInput.value.trim();
-                if (!text) return;
 
-                userInput.value = "";
-                sendBtn.disabled = true;
-                addMessage("you", text);
-                const loading = addMessage("assistant", "Thinking...", true);
+                const text =
+                    userInput.value.trim();
+
+                if (!text) {
+                    return;
+                }
+
+
+                userInput.value =
+                    "";
+
+                sendBtn.disabled =
+                    true;
+
+
+                addMessage(
+                    "you",
+                    text
+                );
+
+
+                const loading =
+                    addMessage(
+                        "assistant",
+                        "Thinking...",
+                        true
+                    );
+
 
                 try {
-                    const res = await fetch("/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            message: text,
-                            session_id: sessionId,
-                        }),
-                    });
-                    const data = await res.json();
-                    sessionId = data.session_id;
 
-                    // Show each tool the harness ran, above the assistant's answer
-                    for (const call of data.tool_calls || []) {
-                        const div = document.createElement("div");
-                        div.className = "tool";
-                        const label = document.createElement("span");
-                        label.className = "label";
-                        label.textContent = "tool call  ";
-                        div.appendChild(label);
-                        div.appendChild(
-                            document.createTextNode(
-                                call.name + "(" + JSON.stringify(call.args) + ")\n→ " + call.result,
-                            ),
+                    const res =
+                        await fetch(
+                            "/chat",
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        message: text,
+                                        session_id: sessionId
+                                    })
+                            }
                         );
-                        messages.insertBefore(div, loading);
-                    }
-                    const content = loading.querySelector(".content");
 
-                    content.innerHTML = escapeHtml(data.response)
-                        .replace(/\n/g, "<br>");
-                    loading.classList.remove("loading");
+
+                    const data =
+                        await res.json();
+
+
+                    sessionId =
+                        data.session_id;
+
+
+                    for (
+                        const call
+                        of data.tool_calls || []
+                    ) {
+
+                        const info =
+                            toolInfo[call.name] || {
+                                step: "Tool",
+                                title: call.name,
+                                description:
+                                    "Agent tool execution."
+                            };
+
+
+                        const div =
+                            document.createElement(
+                                "div"
+                            );
+
+                        div.className =
+                            "tool-card";
+
+
+                        const header =
+                            document.createElement(
+                                "div"
+                            );
+
+                        header.className =
+                            "tool-header";
+
+
+                        const headingGroup =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        const step =
+                            document.createElement(
+                                "span"
+                            );
+
+                        step.className =
+                            "tool-step";
+
+                        step.textContent =
+                            info.step;
+
+
+                        const title =
+                            document.createElement(
+                                "h3"
+                            );
+
+                        title.textContent =
+                            info.title;
+
+
+                        headingGroup.appendChild(
+                            step
+                        );
+
+                        headingGroup.appendChild(
+                            title
+                        );
+
+
+                        const status =
+                            document.createElement(
+                                "span"
+                            );
+
+                        status.className =
+                            "tool-status";
+
+                        status.textContent =
+                            "Completed";
+
+
+                        header.appendChild(
+                            headingGroup
+                        );
+
+                        header.appendChild(
+                            status
+                        );
+
+
+                        const description =
+                            document.createElement(
+                                "p"
+                            );
+
+                        description.className =
+                            "tool-description";
+
+                        description.textContent =
+                            info.description;
+
+
+                        const details =
+                            document.createElement(
+                                "details"
+                            );
+
+                        details.className =
+                            "tool-details";
+
+
+                        const summary =
+                            document.createElement(
+                                "summary"
+                            );
+
+                        summary.textContent =
+                            "View tool call details";
+
+
+                        const pre =
+                            document.createElement(
+                                "pre"
+                            );
+
+
+                        let formattedResult =
+                            call.result;
+
+
+                        try {
+
+                            const parsed =
+                                JSON.parse(
+                                    call.result
+                                );
+
+                            formattedResult =
+                                JSON.stringify(
+                                    parsed,
+                                    null,
+                                    2
+                                );
+
+                        } catch (e) {
+
+                            formattedResult =
+                                call.result;
+
+                        }
+
+
+                        pre.textContent =
+                            call.name +
+                            "(" +
+                            JSON.stringify(
+                                call.args,
+                                null,
+                                2
+                            ) +
+                            ")" +
+                            "\n\n" +
+                            formattedResult;
+
+
+                        details.appendChild(
+                            summary
+                        );
+
+                        details.appendChild(
+                            pre
+                        );
+
+
+                        div.appendChild(
+                            header
+                        );
+
+                        div.appendChild(
+                            description
+                        );
+
+                        div.appendChild(
+                            details
+                        );
+
+
+                        messages.insertBefore(
+                            div,
+                            loading
+                        );
+
+                    }
+
+
+                    const content =
+                        loading.querySelector(
+                            ".content"
+                        );
+
+
+                    content.innerHTML =
+                        escapeHtml(
+                            data.response
+                        ).replace(
+                            /\n/g,
+                            "<br>"
+                        );
+
+
+                    loading.classList.remove(
+                        "loading"
+                    );
+
+
                 } catch (e) {
-                    loading.querySelector(".content").textContent =
-                        "Error: " + e.message;
-                    loading.classList.remove("loading");
+
+                    loading
+                        .querySelector(
+                            ".content"
+                        )
+                        .textContent =
+                            "Error: " +
+                            e.message;
+
+
+                    loading.classList.remove(
+                        "loading"
+                    );
+
                 }
-                sendBtn.disabled = false;
+
+
+                sendBtn.disabled =
+                    false;
+
                 userInput.focus();
+
             }
 
-            sendBtn.addEventListener("click", send);
-            userInput.addEventListener("keydown", function (e) {
-                if (e.key === "Enter") send();
-            });
-            userInput.focus();
+
+            sendBtn.addEventListener(
+                "click",
+                send
+            );
+
+
+            userInput.addEventListener(
+                "keydown",
+                function (e) {
+
+                    if (e.key === "Enter") {
+                        send();
+                    }
+
+                }
+            );
+
+
+            document
+                .querySelectorAll(
+                    ".prompt-chip"
+                )
+                .forEach(
+                    (button) => {
+
+                        button.addEventListener(
+                            "click",
+                            () => {
+
+                                userInput.value =
+                                    button.dataset.prompt;
+
+                                userInput.focus();
+
+                            }
+                        );
+
+                    }
+                );
+
         </script>
     </body>
 </html>
