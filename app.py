@@ -265,7 +265,12 @@ class ChatResponse(BaseModel):
 @app.get("/")
 def index():
     return FileResponse(
-        Path(__file__).parent / "index.html"
+        Path(__file__).parent / "index.html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 
