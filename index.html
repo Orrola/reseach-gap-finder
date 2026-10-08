@@ -236,6 +236,16 @@
                 background: #ffffff;
 
                 border: 1px solid #deded9;
+
+                margin-bottom: 3rem;
+            }
+
+            .hero {
+                margin-bottom: 2rem;
+            }
+
+            .examples {
+                margin-bottom: 2rem;
             }
 
             .chat-heading {
@@ -257,6 +267,12 @@
                 color: #7b8286;
             }
 
+            .chat-hint {
+                margin-top: 0.25rem;
+                font-size: 0.78rem;
+                color: #9aa0a3;
+            }
+
             #messages {
                 overflow-y: auto;
 
@@ -274,10 +290,6 @@
                 max-width: 82%;
 
                 line-height: 1.55;
-            }
-
-            .msg.assistant .content {
-                white-space: pre-wrap;
             }
 
             .msg.user {
@@ -299,6 +311,27 @@
 
             .msg .content {
                 font-size: 0.94rem;
+            }
+
+            .msg.assistant .content h3 {
+                margin: 1rem 0 0.4rem;
+                font-size: 1rem;
+                font-weight: 600;
+            }
+
+            .msg.assistant .content p {
+                margin: 0.4rem 0;
+            }
+
+            .msg.assistant .content ul {
+                margin: 0.4rem 0 0.8rem 1.2rem;
+                font-size: 0.88rem;
+                color: #4a5256;
+            }
+
+            .msg.assistant .content a {
+                color: #20272b;
+                text-decoration: underline;
             }
 
             .msg.loading .content {
@@ -504,6 +537,89 @@
 
             </header>
 
+            <section class="examples">
+
+                <h2>
+                    Try an example
+                </h2>
+
+                <p>
+                    Select a prompt below or enter your own research topic.
+                </p>
+
+
+                <div class="prompt-chips">
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on generative AI and employee productivity."
+                    >
+                        Generative AI & employee productivity
+                    </button>
+
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on AI adoption in healthcare."
+                    >
+                        AI adoption in healthcare
+                    </button>
+
+
+                    <button
+                        class="prompt-chip"
+                        data-prompt="Find candidate research gaps in recent literature on large language models in education."
+                    >
+                        LLMs in education
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ==================================================
+                Chat interface
+            =================================================== -->
+
+            <main id="container">
+
+                <div class="chat-heading">
+
+                    <h2>
+                        Research Query
+                    </h2>
+
+                    <p>
+                        Ask about a research topic and the agent will
+                        automatically run the full literature-analysis workflow.
+                    </p>
+                    <p class="chat-hint">
+                        After the first result, you can ask follow-up questions,
+                        e.g. "What papers support gap 1?"
+                    </p>
+                </div>
+
+
+                <div id="messages"></div>
+
+
+                <div id="input-area">
+
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="Ask about a research topic..."
+                        autocomplete="off"
+                    />
+
+                    <button id="send-btn">
+                        Send
+                    </button>
+
+                </div>
+
+            </main>
             <section class="gap-section">
 
                 <div class="section-heading">
@@ -511,8 +627,8 @@
                 </div>
 
                 <p class="section-description">
-                    The agent currently looks for three types of evidence
-                    patterns in the retrieved literature sample.
+                    How the agent decides what counts as a candidate gap: it looks for 
+                    three types of evidence patterns in the retrieved literature sample.
                 </p>
 
 
@@ -599,92 +715,9 @@
             </section>
 
 
-            <!-- ==================================================
-                Example prompts
-            =================================================== -->
-
-            <section class="examples">
-
-                <h2>
-                    Try an example
-                </h2>
-
-                <p>
-                    Select a prompt below or enter your own research topic.
-                </p>
-
-
-                <div class="prompt-chips">
-
-                    <button
-                        class="prompt-chip"
-                        data-prompt="Find candidate research gaps in recent literature on generative AI and employee productivity."
-                    >
-                        Generative AI & employee productivity
-                    </button>
-
-
-                    <button
-                        class="prompt-chip"
-                        data-prompt="Find candidate research gaps in recent literature on AI adoption in healthcare."
-                    >
-                        AI adoption in healthcare
-                    </button>
-
-
-                    <button
-                        class="prompt-chip"
-                        data-prompt="Find candidate research gaps in recent literature on large language models in education."
-                    >
-                        LLMs in education
-                    </button>
-
-                </div>
-
-            </section>
-
-
-            <!-- ==================================================
-                Chat interface
-            =================================================== -->
-
-            <main id="container">
-
-                <div class="chat-heading">
-
-                    <h2>
-                        Research Query
-                    </h2>
-
-                    <p>
-                        Ask about a research topic and the agent will
-                        automatically run the full literature-analysis workflow.
-                    </p>
-
-                </div>
-
-
-                <div id="messages"></div>
-
-
-                <div id="input-area">
-
-                    <input
-                        type="text"
-                        id="user-input"
-                        placeholder="Ask about a research topic..."
-                        autocomplete="off"
-                    />
-
-                    <button id="send-btn">
-                        Send
-                    </button>
-
-                </div>
-
-            </main>
-
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
         <script>
 
             const messages =
@@ -723,20 +756,6 @@
                 }
 
             };
-
-
-            function escapeHtml(text) {
-
-                const div =
-                    document.createElement("div");
-
-                div.textContent =
-                    text;
-
-                return div.innerHTML;
-
-            }
-
 
             function addMessage(
                 role,
@@ -1062,14 +1081,12 @@
                         );
 
 
-                    content.innerHTML =
-                        escapeHtml(
-                            data.response
-                        ).replace(
-                            /\n/g,
-                            "<br>"
-                        );
+                    content.innerHTML = DOMPurify.sanitize(marked.parse(data.response));
 
+                    content.querySelectorAll("a").forEach(a => {
+                        a.target = "_blank";
+                        a.rel = "noopener noreferrer";
+                    });
 
                     loading.classList.remove(
                         "loading"

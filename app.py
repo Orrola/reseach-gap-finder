@@ -33,6 +33,12 @@ SYSTEM_PROMPT = (
     "not as confirmed absence of prior research. "
     "Candidate gaps may be classified as method coverage gaps, recurring limitations, "
     "or conflicting findings."
+
+    "If profiles for the current topic already exist in this session, answer "
+    "follow-up questions from the conversation history and do not call "
+    "search_papers or extract_paper_profiles again. Call search_papers again "
+    "only when the user changes the topic or explicitly asks to refresh. "
+    "When asked for evidence, refer to the papers listed in your previous answer. "
 )
 
 MAX_TOOL_ROUNDS = 6
@@ -41,38 +47,37 @@ MAX_TOOL_ROUNDS = 6
 # Helpers
 # ---------------------------------------------------------
 
-def format_gap_result(result: dict) -> str:
+def format_gap_result(result: dict, session: dict) -> str:
     gaps = result.get("gaps", [])
-
     if not gaps:
-        return (
-            "No clear candidate gaps were identified "
-            "from the retrieved sample."
-        )
+        return "No clear candidate gaps were identified from the retrieved sample."
 
-    sections = []
+    n_req = len(session["papers"])
+    n_ok = len(session["profiles"])
+    header = f"Based on {n_ok} of {n_req} retrieved papers"
+    if n_ok < n_req:
+        header += f" ({n_req - n_ok} could not be profiled)"
 
-    for gap in gaps:
-        gap_type = (
-            gap.get("gap_type", "candidate_gap")
-            .replace("_", " ")
-            .title()
-        )
-
-        description = gap.get(
-            "description",
-            "No description available."
-        )
-
-        sections.append(
-            f"{gap_type}\n{description}"
-        )
+    sections = [header + "."]
+    for i, gap in enumerate(gaps, 1):
+        gap_type = gap.get("gap_type", "candidate_gap").replace("_", " ").title()
+        lines = [f"### {i}. {gap_type}", gap.get("description", ""), "", "**Evidence**"]
+        for pid in gap.get("evidence_paper_ids", []):
+            paper = session["papers"].get(pid, {})
+            profile = session["profiles"].get(pid, {})
+            title = paper.get("title") or pid
+            doi = paper.get("doi")          # OpenAlex 返回的是完整 URL
+            link = f"[{title}]({doi})" if doi else title
+            lines.append(
+                f"- {link} ({paper.get('year')}), "
+                f"{profile.get('method_category')} / {profile.get('setting_category')}"
+            )
+        sections.append("\n".join(lines))
 
     sections.append(
         "These candidate gaps are inferred from the retrieved sample "
         "and should be validated against a broader literature review."
     )
-
     return "\n\n".join(sections)
 
 # ---------------------------------------------------------
@@ -122,62 +127,77 @@ def run_agent(session: dict) -> tuple[str, list[dict]]:
                 session=session,
             )
 
-            # Default:
-            # tool output shown to Gemini is identical
-            # to the tool's raw return value.
             model_result = raw_result
-
-            # -----------------------------------------
-            # Special handling for search_papers
-            # -----------------------------------------
+            ui_result = raw_result
 
             if call.function.name == "search_papers":
-
                 try:
                     parsed = json.loads(raw_result)
 
-                    # If the tool itself returned an error,
-                    # send the error directly to Gemini.
                     if "error" not in parsed:
-
                         session["research_query"] = parsed.get("query")
+                        session["papers"] = {}
+                        session["profiles"] = {}
+                        session["gaps"] = []
 
-                        # Store full papers in backend session state.
                         for paper in parsed.get("papers", []):
                             paper_id = paper.get("paper_id")
-
                             if paper_id:
                                 session["papers"][paper_id] = paper
 
-                        # Build lightweight result for Gemini.
                         compact_result = {
                             "count": parsed.get("count"),
-                                "year_range": [
-                                    parsed.get("start_year"),
-                                    date.today().year,
-                                ],
+                            "year_range": [
+                                parsed.get("start_year"),
+                                date.today().year,
+                            ],
                             "warning": parsed.get("warning"),
                         }
-                        model_result = json.dumps(
-                            compact_result
-                        )
+                        model_result = json.dumps(compact_result)
 
-                except (
-                    json.JSONDecodeError,
-                    TypeError,
-                ):
-                    # If parsing somehow fails,
-                    # fall back to the original result.
+                        ui_result = json.dumps({
+                            **compact_result,
+                            "papers": [
+                                {
+                                    "title": p.get("title"),
+                                    "year": p.get("year"),
+                                    "venue": p.get("venue"),
+                                    "doi": p.get("doi"),
+                                }
+                                for p in parsed.get("papers", [])
+                            ],
+                        })
+
+                except (json.JSONDecodeError, TypeError):
                     model_result = raw_result
+                    ui_result = raw_result
 
-            # -----------------------------------------
-            # Record tool call for UI / grader
-            # -----------------------------------------
+            elif call.function.name == "extract_paper_profiles":
+                try:
+                    parsed = json.loads(raw_result)
+
+                    if "error" not in parsed:
+                        ui_result = json.dumps({
+                            **parsed,
+                            "profiles": [
+                                {
+                                    "title": session["papers"].get(pid, {}).get("title"),
+                                    "method": prof.get("method_category"),
+                                    "setting": prof.get("setting_category"),
+                                    "direction": prof.get("finding_direction"),
+                                    "limitation": prof.get("explicit_limitation"),
+                                }
+                                for pid, prof in session["profiles"].items()
+                            ],
+                        })
+
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
             tool_calls.append({
                 "name": call.function.name,
                 "args": args,
-                "result": model_result,
+                "result": ui_result,
             })
 
             # Only compact tool output enters
@@ -193,7 +213,7 @@ def run_agent(session: dict) -> tuple[str, list[dict]]:
                     gap_data = json.loads(raw_result)
 
                     if "error" not in gap_data:
-                        final_response = format_gap_result(gap_data)
+                        final_response = format_gap_result(gap_data, session)
 
                         messages.append({
                             "role": "assistant",

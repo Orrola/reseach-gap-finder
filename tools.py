@@ -378,10 +378,6 @@ def search_papers(
 # Tool 2: Extract structured paper profiles
 # ---------------------------------------------------------
 
-PROFILE_MODEL = "vertex_ai/gemini-3.5-flash-lite"
-PROFILE_BATCH_SIZE = 5
-
-
 METHOD_CATEGORIES = [
     "experimental",
     "observational",
@@ -413,6 +409,16 @@ FINDING_DIRECTIONS = [
     "null",
     "descriptive",
     "unclear",
+]
+
+LIMITATION_THEMES = [
+    "sample_or_generalizability",
+    "self_reported_measurement",
+    "short_term_or_cross_sectional",
+    "causality_or_confounding",
+    "context_specific",
+    "needs_further_research",
+    "other",
 ]
 
 
@@ -487,6 +493,13 @@ def _validate_profile(
         or "not stated"
     )
 
+    theme = profile.get("limitation_theme")
+
+    if explicit_limitation == "not stated":
+        theme = "not stated"
+    elif theme not in LIMITATION_THEMES:
+        theme = "other"
+
     return {
         "paper_id": paper_id,
         "method_category": method,
@@ -495,6 +508,7 @@ def _validate_profile(
         "main_finding": main_finding,
         "finding_direction": direction,
         "explicit_limitation": explicit_limitation,
+        "limitation_theme": theme,
     }
 
 
@@ -536,6 +550,7 @@ setting_detail
 main_finding
 finding_direction
 explicit_limitation
+limitation_theme
 
 Allowed method_category values:
 experimental
@@ -564,6 +579,15 @@ mixed
 null
 descriptive
 unclear
+
+Allowed limitation_theme values:
+sample_or_generalizability
+self_reported_measurement
+short_term_or_cross_sectional
+causality_or_confounding
+context_specific
+needs_further_research
+other
 
 Rules:
 
@@ -596,6 +620,10 @@ Use "unclear" when the abstract does not clearly support a direction.
 Maximum 20 words.
 ONLY extract a limitation, unresolved issue, or future-work statement
 if it is explicitly stated in the abstract.
+
+7. limitation_theme:
+If explicit_limitation is "not stated", return "not stated".
+Otherwise choose the closest value from the allowed list.
 
 Do NOT infer a limitation yourself.
 
@@ -932,100 +960,54 @@ def _build_coverage_matrix(
     return matrix
 
 
-def _find_sparse_combinations(
-    coverage_matrix: dict,
-) -> list[dict]:
-    """
-    Find method x setting combinations represented
-    by zero or one paper in the retrieved sample.
-    """
+def _find_sparse_combinations(profiles, coverage_matrix, min_marginal=3):
+    method_totals = {m: sum(row.values()) for m, row in coverage_matrix.items()}
+    setting_totals = Counter(p["setting_category"] for p in profiles)
 
     sparse = []
-
-    for method, settings in coverage_matrix.items():
-
-        for setting, count in settings.items():
-
-            if count <= 1:
-
+    for method, row in coverage_matrix.items():
+        if method == "other":
+            continue
+        for setting, count in row.items():
+            if setting == "other":
+                continue
+            if (count <= 1
+                    and method_totals[method] >= min_marginal
+                    and setting_totals[setting] >= min_marginal):
                 sparse.append({
                     "method_category": method,
                     "setting_category": setting,
                     "count": count,
+                    "method_total": method_totals[method],
+                    "setting_total": setting_totals[setting],
+                    "paper_ids": [p["paper_id"] for p in profiles
+                                  if p["method_category"] == method
+                                  and p["setting_category"] == setting],
+                    "setting_paper_ids": [p["paper_id"] for p in profiles
+                                          if p["setting_category"] == setting],
                 })
-
     return sparse
 
 
-def _normalize_limitation(
-    text: str,
-) -> str:
-    """
-    Normalize a limitation phrase for lightweight counting.
-
-    This is intentionally simple.
-    Tool 3 later asks Gemini to interpret recurring themes.
-    """
-
-    return (
-        text
-        .strip()
-        .lower()
-        .replace(".", "")
-        .replace(",", "")
-    )
-
-
-def _collect_limitations(
-    profiles: list[dict],
-) -> list[dict]:
-    """
-    Collect explicit limitations that were actually stated
-    in abstracts.
-
-    Returns limitation text with paper IDs.
-    """
-
-    limitation_groups = defaultdict(list)
-
-    for profile in profiles:
-
-        limitation = profile.get(
-            "explicit_limitation",
-            "not stated",
-        )
-
-        if (
-            not limitation
-            or limitation == "not stated"
-        ):
+def _collect_limitations(profiles: list[dict]) -> list[dict]:
+    groups = defaultdict(list)
+    for p in profiles:
+        theme = p.get("limitation_theme", "not stated")
+        if theme in ("not stated", "other"):
             continue
+        groups[theme].append(p)
 
-        normalized = _normalize_limitation(
-            limitation
-        )
-
-        limitation_groups[
-            normalized
-        ].append(
-            profile["paper_id"]
-        )
-
-    results = []
-
-    for limitation, paper_ids in limitation_groups.items():
-
-        results.append({
-            "limitation": limitation,
-            "count": len(paper_ids),
-            "paper_ids": paper_ids,
-        })
-
-    return sorted(
-        results,
-        key=lambda x: x["count"],
-        reverse=True,
-    )
+    results = [
+        {
+            "theme": theme,
+            "count": len(ps),
+            "paper_ids": [p["paper_id"] for p in ps],
+            "examples": [p["explicit_limitation"] for p in ps[:3]],
+        }
+        for theme, ps in groups.items()
+        if len(ps) >= 2          # 至少两篇才算 recurring
+    ]
+    return sorted(results, key=lambda x: x["count"], reverse=True)
 
 
 def _find_direction_conflicts(
@@ -1063,9 +1045,10 @@ def _find_direction_conflicts(
             setting
         ][
             direction
-        ].append(
-            profile["paper_id"]
-        )
+        ].append({
+            "paper_id": profile["paper_id"],
+            "finding": profile["main_finding"],
+        })
 
     conflicts = []
 
@@ -1169,11 +1152,11 @@ Rules:
 
 
 Return ONLY a valid JSON array.
-
-Each item must contain exactly:
-
-gap_type
-description
+Each item must contain exactly: gap_type, description, evidence_paper_ids.
+evidence_paper_ids must be a list of paper_id strings copied from the
+input evidence that support this gap. Do not invent ids.
+Report conflicting_findings only if the listed findings concern the same
+relationship or outcome; otherwise omit it.
 """.strip()
 
     evidence_payload = {
@@ -1243,9 +1226,11 @@ description
         if not description:
             continue
 
+        evidence = gap.get("evidence_paper_ids")
         gaps.append({
             "gap_type": gap_type,
-            "description": description
+            "description": description,
+            "evidence_paper_ids": evidence if isinstance(evidence, list) else [],
         })
 
     return gaps
@@ -1362,6 +1347,7 @@ def find_research_gaps(
 
     sparse_combinations = (
         _find_sparse_combinations(
+            selected_profiles,
             coverage_matrix
         )
     )
@@ -1429,6 +1415,10 @@ def find_research_gaps(
     # Save full result in session
     # -----------------------------------------------------
 
+    for gap in gaps:
+        gap["evidence_paper_ids"] = [
+            pid for pid in gap["evidence_paper_ids"] if pid in profiles_store
+        ][:6]
     session["gaps"] = gaps
 
     # -----------------------------------------------------
