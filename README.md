@@ -2,7 +2,7 @@
 
 A tool-calling agent that helps users identify potantial research gaps from recent academic literature.
 
-Given a research topic or question, the agent searches recent journal articles, extracts structured research profiles from their abstracts, and identifies underrepresented methodological or contextual combinations and conflicting findings.
+Given a research topic or question, the agent searches recent journal articles, extracts structured research profiles from their abstracts, and identifies uncovered methodological or contextual combinations and conflicting findings.
 
 The system is designed to avoid generating research gaps from the language model alone. Instead, it first builds structured evidence from retrieved papers and uses that evidence to support gap detection.
 
@@ -15,6 +15,8 @@ The agent follows a three-step workflow:
    - By default, searches the current calendar year and the previous two years.
    - Only journal articles with available abstracts are included.
    - The default search returns 15 papers, with a supported range of 10–25.
+   _Demo-scale sample size:_
+     The default sample size is intentionally limited to 15 papers to keep retrieval, profile extraction, and gap analysis fast and cost-efficient for an interactive demonstration. In a production or research setting, the workflow could be expanded to approximately 50–200 papers using staged or batched processing.
 
 2. **Extract structured paper profiles**
    - Processes abstracts in batches of five using Gemini.
@@ -93,3 +95,5 @@ The following queries can be used to test the deployed agent:
 2. `What research gaps appear in recent journal articles about AI adoption in healthcare?`
 
 3. `Identify candidate research gaps in recent research on large language models in education.`
+
+The agent also supports follow-up questions within the same session, such as *“What’s the evidence behind your finding?”*, allowing users to further explore the reasoning and evidence behind identified candidate gaps.
